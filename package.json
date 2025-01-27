@@ -1,0 +1,23 @@
+{
+  "name": "bja-cvcx",
+  "version": "1.0.0",
+  "description": "This is a simulation where you can simulate contionus blackjack games and achive game datas from it",
+  "main": "BjaSim.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nOtelite-oss/BJA-CVCX-Remake.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nOtelite-oss/BJA-CVCX-Remake/issues"
+  },
+  "homepage": "https://github.com/nOtelite-oss/BJA-CVCX-Remake#readme",
+  "dependencies": {
+    "@types/node": "^22.10.7"
+  }
+}
