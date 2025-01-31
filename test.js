@@ -67,12 +67,12 @@ function shuffle(array) {
   while (n) {
     i = Math.floor(Math.random() * n--);
     copy.push(array.splice(i, 1)[0]);
-    console.log(copy);
-    console.log(array);
   }
+
+  console.log(copy);
 }
 
-// shuffle(numbers);
+shuffle(numbers);
 const myString = "-2+HS";
 const mySecString = "H";
 
@@ -92,5 +92,5 @@ converter = (string) => {
   }
 };
 
-converter(myString);
-converter(mySecString);
+// converter(myString);
+// converter(mySecString);
