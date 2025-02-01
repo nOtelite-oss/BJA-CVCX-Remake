@@ -1,3 +1,5 @@
+// Go to bottom of the file to see the main function that runs the simulation.
+
 import { GameRules } from "./bja_game_rules";
 
 type Rank =
@@ -16,9 +18,11 @@ type Rank =
   | "A";
 
 class PlayingCard {
-  constructor(public rank: Rank) {}
+  constructor(public rank: Rank) {
+    this.rank = rank;
+  }
 
-  value(): number {
+  public value(): number {
     if (["J", "Q", "K"].includes(this.rank)) {
       return 10;
     } else if (this.rank === "A") {
@@ -34,6 +38,7 @@ class Hand {
   public readonly is_dealer: boolean;
   public handSplited: number;
   public doubledDown: boolean = false;
+  public handValue: number;
 
   constructor(
     private dealer: boolean,
@@ -45,31 +50,25 @@ class Hand {
     this.hand_cards = [card_one, card_two];
     this.handSplited = 0;
     this.handBet = handBet;
-  }
 
-  public isSoft(): boolean {
-    if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
-      if (this.isSoft() === true || this.handValue() > 21) {
-        return false;
-      } else {
-        return true;
+    this.handValue = card_one.value() + card_two.value();
+
+    if (this.handValue > 21) {
+      if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
+        this.handValue -= 10;
       }
-    } else {
-      return false;
     }
   }
 
-  public handValue(): number {
-    let value: number = 0;
-
-    this.hand_cards.forEach((card) => {
-      value += card.value();
-    });
-
-    if (value > 21 && this.isSoft()) {
-      return value - 10;
+  public isSoft(): boolean {
+    if (this.handValue > 21) {
+      return false;
     } else {
-      return value;
+      if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -82,6 +81,13 @@ class Hand {
 
   public hitCard(card: PlayingCard) {
     this.hand_cards.push(card);
+    this.handValue += card.value();
+
+    if (this.handValue > 21) {
+      if (this.hand_cards.some((card) => card.rank === "A")) {
+        this.handValue -= 10;
+      }
+    }
   }
 }
 
@@ -90,7 +96,7 @@ class Shoe {
 
   private running_count: number = 0;
 
-  private handsPlayedinShoe: number;
+  private handsPlayedinShoe: number = 0;
 
   private cardsPlayed: number = 0;
 
@@ -108,8 +114,13 @@ class Shoe {
 
     this.penetration = penetration;
 
+    console.log("I Worked: shoe constructor");
+  }
+
+  public startShoe() {
     while (this.cardsPlayed / (this.numDecks * 52) < this.penetration) {
       this.playHand();
+      console.log("I Worked: playhand called");
     }
   }
 
@@ -203,22 +214,23 @@ class Shoe {
   }
 
   private dealerHandAlgorithm(dealer_hand: Hand): number {
+    console.log("I Worked: dealer algorithm called");
     if (!dealer_hand.isSoft()) {
-      while (dealer_hand.handValue() < 17) {
+      while (dealer_hand.handValue < 17) {
         dealer_hand.hitCard(this.dealCard());
       }
-      return dealer_hand.handValue();
+      return dealer_hand.handValue;
     } else {
       if (this.dealerHitsSoft17) {
-        while (dealer_hand.handValue() <= 17) {
+        while (dealer_hand.handValue <= 17) {
           dealer_hand.hitCard(this.dealCard());
         }
-        return dealer_hand.handValue();
+        return dealer_hand.handValue;
       } else {
-        while (dealer_hand.handValue() < 17) {
+        while (dealer_hand.handValue < 17) {
           dealer_hand.hitCard(this.dealCard());
         }
-        return dealer_hand.handValue();
+        return dealer_hand.handValue;
       }
     }
   }
@@ -227,11 +239,25 @@ class Shoe {
     player_hand: Hand,
     dealer_hand: Hand,
     dealer_hand_value: number
-  ): Hand {
+  ) {
     let strategyCode = this.basicStrategy(player_hand, dealer_hand);
     let action = this.codeConverter(strategyCode);
 
-    while (true) {
+    console.log("I Worked: player algorithm");
+
+    let protectTheLoop = 1;
+    while (protectTheLoop < 10) {
+      protectTheLoop++;
+      console.log(
+        "while loop worked" +
+          "- " +
+          this.handsPlayedinShoe +
+          " " +
+          player_hand.handValue +
+          " " +
+          action
+      ); //just to see if the loop works delete it later
+
       if (action === "Y" && player_hand.handSplited <= this.maxSplits) {
         let new_hand1 = new Hand(
           false,
@@ -295,25 +321,50 @@ class Shoe {
         player_hand.hitCard(this.dealCard());
         this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
       } else {
-        if (player_hand.handValue() > dealer_hand_value) {
-          //player wins
-        } else if (player_hand.handValue() < dealer_hand_value) {
+        if (player_hand.handValue === 21) {
+          //player blackjack
+          console.log("player blackjack");
+        }
+        if (dealer_hand_value === 21) {
+          //dealer blackjack
+          console.log("dealer blackjack");
+        }
+
+        if (player_hand.handValue > 21) {
+          //player bust
           //dealer wins
+          console.log("player bust");
+          console.log("dealer wins");
+          break;
+        } else if (dealer_hand_value > 21) {
+          //dealer bust
+          //player wins
+          console.log("dealer bust");
+          console.log("player wins");
+          break;
+        } else if (player_hand.handValue > dealer_hand_value) {
+          //player wins
+          console.log("player wins");
+          break;
+        } else if (player_hand.handValue < dealer_hand_value) {
+          //dealer wins
+          console.log("dealer wins");
+          break;
+        } else {
+          //stand off
+          console.log("stand off");
+          break;
         }
       }
-      console.log("while loop worked" + "- " + this.handsPlayedinShoe);
     }
   }
 
   private bettingRamp(true_count: number): number {
-    const bettingRatio = [
-      0, 1, 2, 4, 5, 6, 8, 12, 16, 20, 25, 35, 50, 75, 100, 150, 200, 300, 500,
-      750,
-    ];
-    const betingMultiplier = 1 / 3;
+    const bettingRatio = GameRules.bettingRatio;
+    const betingMultiplier = 1 / 3; //CUSTOMIZABLE
     const bettingArray = bettingRatio.map((x) => x * betingMultiplier);
 
-    const revindCount = 1;
+    const revindCount = 1; //CUSTOMIZABLE
 
     const roundedCount = Math.round(true_count * 10);
 
@@ -326,7 +377,9 @@ class Shoe {
     }
   }
 
-  private codeConverter(code: string) {
+  private codeConverter(code: string): string {
+    console.log(code);
+
     if (code.length === 1) {
       return code;
     } else {
@@ -346,26 +399,26 @@ class Shoe {
   }
   private basicStrategy(player_hand: Hand, dealer_hand: Hand): string {
     if (player_hand.canSplitable() === true) {
-      return GameRules.pair_chart[(22 - player_hand.handValue()) / 2][
+      return GameRules.pair_chart[(22 - player_hand.handValue) / 2][
         dealer_hand.hand_cards[0].value() - 2
       ];
     } else if (!player_hand.isSoft()) {
-      if (player_hand.handValue() > 17) {
+      if (player_hand.handValue > 17) {
         return "S";
-      } else if (player_hand.handValue() < 8) {
+      } else if (player_hand.handValue < 8) {
         return "H";
       } else {
-        return GameRules.hard_chart[17 - player_hand.handValue()][
+        return GameRules.hard_chart[17 - player_hand.handValue][
           dealer_hand.hand_cards[0].value() - 2
         ];
       }
     } else if (dealer_hand.isSoft()) {
-      if (player_hand.handValue() > 10) {
+      if (player_hand.handValue > 10) {
         return "S";
-      } else if (player_hand.handValue() < 3) {
+      } else if (player_hand.handValue < 3) {
         return "H";
       } else {
-        return GameRules.soft_chart[10 - player_hand.handValue()][
+        return GameRules.soft_chart[10 - player_hand.handValue][
           dealer_hand.hand_cards[0].value() - 2
         ];
       }
@@ -428,14 +481,37 @@ class BlackjackSimulation {
     this.statistics.endMoney = initialMoney;
   }
 
-  public setStatatistics() {
-    this.statistics.handsPlayed = 1;
+  public setStatatistics(
+    player_hand: Hand,
+    dealer_hand: Hand,
+    player_won: boolean,
+    player_blackjack: boolean,
+    player_bust: boolean,
+    dealer_bust: boolean,
+    hand_bet: number,
+    true_count_of_bet: number
+  ) {
+    this.statistics.handsPlayed++;
+    this.statistics.totalBet += player_hand.handBet;
+
+    if (player_won) {
+      this.statistics.playerWins++;
+      if (player_blackjack) {
+        this.statistics.playerBlackjacks++;
+      }
+    } else if (player_bust) {
+      this.statistics.playerBusts++;
+    }
+
+    if (dealer_bust) {
+      this.statistics.dealerBusts++;
+    }
   }
 
   public simulate(numShoes: number) {
     for (let i = 0; i < numShoes; i++) {
       let shoe = new Shoe(
-        numShoes,
+        this.numDecks,
         this.penetration,
         this.dealerHitsSoft17,
         this.maxSplits,
@@ -443,6 +519,9 @@ class BlackjackSimulation {
         this.blackjackPayout,
         this.initialMoney
       );
+
+      shoe.startShoe();
+
       this.statistics.shoesPlayed++;
     }
     // this.outputStatistics();
@@ -511,6 +590,14 @@ class BlackjackSimulation {
   }
 }
 
+//THIS CODE GATHERS THE BASIC CUSTOMIZATIONS FROM THE bja_game_rules.ts (GameRules class) FILE. REQUIRES THE FILE TO BE IN THE SAME DIRECTORY!
+//There are additional numerical customizations that can be made in the code itself.
+
+//The code is not designed to play blackjack, it is designed to simulate the game and gather statistics.
+//Developer would love to hear feedback, and is completely open to any suggestions or improvements.
+
+const howManyShoesWillBePlayed: number = 1;
+
 const simulation = new BlackjackSimulation(
   2, // numDecks
   0.75, // penetration
@@ -518,6 +605,7 @@ const simulation = new BlackjackSimulation(
   3, // maxSplits
   true, // doubleAfterSplit
   1.5, // blackjackPayout
-  1000 // initialMoney
+  100000 // initialMoney
 );
-simulation.simulate(1);
+
+simulation.simulate(howManyShoesWillBePlayed);

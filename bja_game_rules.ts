@@ -3,6 +3,14 @@ export class GameRules {
   public static hard_chart: string[][];
   public static soft_chart: string[][];
   public static pair_chart: string[][];
+  public static bettingRatio: number[];
+
+  static betting_config_one() {
+    GameRules.bettingRatio = [
+      0, 1, 2, 4, 5, 6, 8, 12, 16, 20, 25, 35, 50, 75, 100, 150, 200, 300, 500,
+      750,
+    ];
+  }
 
   static configration_one() {
     // prettier-ignore
@@ -58,3 +66,4 @@ export class GameRules {
 }
 
 GameRules.configration_one();
+GameRules.betting_config_one();
