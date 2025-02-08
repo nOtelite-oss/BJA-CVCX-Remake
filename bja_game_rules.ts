@@ -24,7 +24,6 @@ export class GameRules {
     GameRules.hard_chart = [
       //S: stand  H: hit  D: double down if allowed otherwise hit || Numbers reffers deviations. E.g. +4+HS (4 +) means normaly hit but if true count is 4 or higher you stand.
       //2    3    4    5    6    7    8    9    10   A
-      ["S", "S", "S", "S", "S", "S", "S", "S", "S", "S"], //17  H17
       ["S", "S", "S", "S", "S", "H", "H", "+4+HS", "+0+HS", "+3+HS"], //16  H16
       ["S", "S", "S", "S", "S", "H", "H", "H", "+4+HS", "+5+HS"], //15   H15
       ["S", "S", "S", "S", "S", "H", "H", "H", "H", "H"], //14  H14
@@ -38,7 +37,6 @@ export class GameRules {
     GameRules.soft_chart = [
       //S: stand  H: hit  D: double down if allowed otherwise hit  M: double down if allowed otherwise stand
       //2    3    4    5    6    7    8    9    10   A
-      ["S", "S", "S", "S", "S", "S", "S", "S", "S", "S"], //A9  S10
       ["S", "S", "+3+SH", "+1+SH", "+0-SH", "S", "S", "S", "S", "S"], //A8  S9
       ["M", "M", "M", "M", "M", "S", "S", "H", "H", "H"], //A7  S8
       ["+1+HN", "D", "D", "D", "D", "H", "H", "H", "H", "H"], //A6  S7

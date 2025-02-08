@@ -21,21 +21,23 @@ var PlayingCard = /** @class */ (function () {
     return PlayingCard;
 }());
 var Hand = /** @class */ (function () {
-    function Hand(dealer, card_one, card_two, handBet) {
+    function Hand(dealer, cardOne, cardTwo, bet) {
         this.dealer = dealer;
-        this.card_one = card_one;
-        this.card_two = card_two;
-        this.handBet = handBet;
+        this.cardOne = cardOne;
+        this.cardTwo = cardTwo;
+        this.bet = bet;
         this.doubledDown = false;
+        this.card_one = cardOne;
+        this.card_two = cardTwo;
         this.is_dealer = dealer;
-        this.hand_cards = [card_one, card_two];
+        this.hand_cards = [this.card_one, this.card_two];
         this.handSplited = 0;
-        this.handBet = handBet;
-        this.handValue = card_one.value() + card_two.value();
-        if (this.handValue > 21) {
-            if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
-                this.handValue -= 10;
-            }
+        this.handBet = bet;
+        this.handValue = this.card_one.value() + this.card_two.value();
+        var aceCount = this.hand_cards.filter(function (card) { return card.rank === "A"; }).length;
+        while (this.handValue > 21 && aceCount > 0) {
+            this.handValue -= 10;
+            aceCount--;
         }
     }
     Hand.prototype.isSoft = function () {
@@ -51,7 +53,7 @@ var Hand = /** @class */ (function () {
             }
         }
     };
-    Hand.prototype.canSplitable = function () {
+    Hand.prototype.canSplit = function () {
         return (this.hand_cards.length === 2 &&
             this.hand_cards[0].rank === this.hand_cards[1].rank);
     };
@@ -78,20 +80,20 @@ var Shoe = /** @class */ (function () {
         this.cards = [];
         this.running_count = 0;
         this.handsPlayedinShoe = 0;
-        this.cardsPlayed = 0;
         this.createShoe();
         this.shuffle();
         this.penetration = penetration;
-        console.log("I Worked: shoe constructor");
+        console.log("I Worked: shoe constructor"); // debug
     }
     Shoe.prototype.startShoe = function () {
-        while (this.cardsPlayed / (this.numDecks * 52) < this.penetration) {
+        while (this.cards.length / (this.numDecks * 52) > this.penetration) {
+            console.log("I Worked: playhand called"); // debug
             this.playHand();
-            console.log("I Worked: playhand called");
         }
     };
     Shoe.prototype.trueCount = function () {
-        return this.running_count / (this.numDecks - this.cardsPlayed / 52);
+        return ((Math.round(this.running_count / (this.cards.length / 52)) * Math.pow(10, 14)) /
+            Math.pow(10, 14));
     };
     Shoe.prototype.createShoe = function () {
         var ranks = [
@@ -118,27 +120,43 @@ var Shoe = /** @class */ (function () {
             }
         }
     };
+    // shuffle() {
+    //   this.running_count = 0;
+    //   let copy: PlayingCard[] = [],
+    //     n: number = this.cards.length,
+    //     i: number;
+    //   while (n) {
+    //     // Pick a remaining element…
+    //     i = Math.floor(Math.random() * n--);
+    //     // And move it to thr new array. so its not picked again.
+    //     copy.push(this.cards.splice(i, 1)[0]);
+    //   }
+    //   this.cards = copy;
+    // }
     Shoe.prototype.shuffle = function () {
-        this.cardsPlayed = 0;
+        var _a;
         this.running_count = 0;
-        var copy = [], n = this.cards.length, i;
-        while (n) {
-            // Pick a remaining element…
-            i = Math.floor(Math.random() * n--);
-            // And move it to thr new array. so its not picked again.
-            copy.push(this.cards.splice(i, 1)[0]);
+        for (var i = this.cards.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            _a = [this.cards[j], this.cards[i]], this.cards[i] = _a[0], this.cards[j] = _a[1];
         }
-        this.cards = copy;
     };
     Shoe.prototype.dealCard = function () {
-        this.cardsPlayed += 1;
-        return this.cards.pop();
+        var dealed_card = this.cards.pop();
+        if (dealed_card.value() <= 6) {
+            this.running_count++;
+        }
+        else if (dealed_card.value() >= 10) {
+            this.running_count--;
+        }
+        return dealed_card;
     };
     Shoe.prototype.remainingCards = function () {
         return this.cards.length;
     };
     Shoe.prototype.playHand = function () {
         // Implement the logic to play a single hand
+        console.log("==============================hand"); // debug
         var opening_cards = [
             this.dealCard(),
             this.dealCard(),
@@ -154,7 +172,7 @@ var Shoe = /** @class */ (function () {
         this.handsPlayedinShoe++;
     };
     Shoe.prototype.dealerHandAlgorithm = function (dealer_hand) {
-        console.log("I Worked: dealer algorithm called");
+        console.log("I Worked: dealer algorithm called"); // debug
         if (!dealer_hand.isSoft()) {
             while (dealer_hand.handValue < 17) {
                 dealer_hand.hitCard(this.dealCard());
@@ -179,99 +197,96 @@ var Shoe = /** @class */ (function () {
     Shoe.prototype.playerHandAlgorithm = function (player_hand, dealer_hand, dealer_hand_value) {
         var strategyCode = this.basicStrategy(player_hand, dealer_hand);
         var action = this.codeConverter(strategyCode);
-        console.log("I Worked: player algorithm");
-        var protectTheLoop = 1;
-        while (protectTheLoop < 10) {
-            protectTheLoop++;
-            console.log("while loop worked" +
-                "- " +
-                this.handsPlayedinShoe +
-                " " +
-                player_hand.handValue +
-                " " +
-                action); //just to see if the loop works delete it later
-            if (action === "Y" && player_hand.handSplited <= this.maxSplits) {
-                var new_hand1 = new Hand(false, player_hand.hand_cards[0], this.dealCard(), this.bettingRamp(this.trueCount()));
-                var new_hand2 = new Hand(false, player_hand.hand_cards[1], this.dealCard(), this.bettingRamp(this.trueCount()));
-                this.playerHandAlgorithm(new_hand1, dealer_hand, dealer_hand_value);
-                this.playerHandAlgorithm(new_hand2, dealer_hand, dealer_hand_value);
-            }
-            else if (action === "B" &&
-                player_hand.handSplited <= this.maxSplits &&
-                this.doubleAfterSplit &&
-                !player_hand.doubledDown) {
-                var new_hand1 = new Hand(false, player_hand.hand_cards[0], this.dealCard(), this.bettingRamp(this.trueCount() * 2));
-                var new_hand2 = new Hand(false, player_hand.hand_cards[1], this.dealCard(), this.bettingRamp(this.trueCount() * 2));
-                new_hand1.doubledDown = true;
-                new_hand2.doubledDown = true;
-                this.playerHandAlgorithm(new_hand1, dealer_hand, dealer_hand_value);
-                this.playerHandAlgorithm(new_hand2, dealer_hand, dealer_hand_value);
-            }
-            else if (action === "D") {
-                if (!player_hand.doubledDown) {
-                    player_hand.hitCard(this.dealCard());
-                    player_hand.handBet *= 2;
-                    player_hand.doubledDown = true;
-                    this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
-                }
-                else {
-                    player_hand.hitCard(this.dealCard());
-                    this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
-                }
-            }
-            else if (action === "M") {
-                if (!player_hand.doubledDown) {
-                    player_hand.hitCard(this.dealCard());
-                    player_hand.handBet *= 2;
-                    player_hand.doubledDown = true;
-                    this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
-                }
-                else {
-                    return player_hand;
-                }
-            }
-            else if (action === "H") {
+        console.log("I Worked: player algorithm"); // debug
+        // debug trueC
+        console.log("-Hands played: " +
+            this.handsPlayedinShoe +
+            " action: " +
+            action +
+            " trueC: " +
+            this.trueCount()); //just to see if the loop works delete it later
+        if (action === "Y" && player_hand.handSplited <= this.maxSplits) {
+            var new_hand1 = new Hand(false, player_hand.hand_cards[0], this.dealCard(), this.bettingRamp(this.trueCount()));
+            var new_hand2 = new Hand(false, player_hand.hand_cards[1], this.dealCard(), this.bettingRamp(this.trueCount()));
+            new_hand1.handValue = player_hand.hand_cards[0].value();
+            new_hand2.handValue = player_hand.hand_cards[1].value();
+            this.playerHandAlgorithm(new_hand1, dealer_hand, dealer_hand_value);
+            this.playerHandAlgorithm(new_hand2, dealer_hand, dealer_hand_value);
+            console.log("split"); // debug
+        }
+        else if (action === "B" &&
+            player_hand.handSplited <= this.maxSplits &&
+            this.doubleAfterSplit &&
+            !player_hand.doubledDown) {
+            var new_hand1 = new Hand(false, player_hand.hand_cards[0], this.dealCard(), this.bettingRamp(this.trueCount() * 2));
+            var new_hand2 = new Hand(false, player_hand.hand_cards[1], this.dealCard(), this.bettingRamp(this.trueCount() * 2));
+            new_hand1.handValue = player_hand.hand_cards[0].value();
+            new_hand2.handValue = player_hand.hand_cards[1].value();
+            new_hand1.doubledDown = true;
+            new_hand2.doubledDown = true;
+            this.playerHandAlgorithm(new_hand1, dealer_hand, dealer_hand_value);
+            this.playerHandAlgorithm(new_hand2, dealer_hand, dealer_hand_value);
+            console.log("double after split");
+        }
+        else if (action === "D") {
+            if (!player_hand.doubledDown) {
                 player_hand.hitCard(this.dealCard());
+                player_hand.handBet *= 2;
+                player_hand.doubledDown = true;
                 this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
             }
             else {
-                if (player_hand.handValue === 21) {
-                    //player blackjack
-                    console.log("player blackjack");
-                }
-                if (dealer_hand_value === 21) {
-                    //dealer blackjack
-                    console.log("dealer blackjack");
-                }
-                if (player_hand.handValue > 21) {
-                    //player bust
-                    //dealer wins
-                    console.log("player bust");
-                    console.log("dealer wins");
-                    break;
-                }
-                else if (dealer_hand_value > 21) {
-                    //dealer bust
-                    //player wins
-                    console.log("dealer bust");
-                    console.log("player wins");
-                    break;
-                }
-                else if (player_hand.handValue > dealer_hand_value) {
-                    //player wins
-                    console.log("player wins");
-                    break;
-                }
-                else if (player_hand.handValue < dealer_hand_value) {
-                    //dealer wins
-                    console.log("dealer wins");
-                    break;
-                }
-                else {
-                    //stand off
-                    console.log("stand off");
-                    break;
-                }
+                player_hand.hitCard(this.dealCard());
+                this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
+            }
+        }
+        else if (action === "M" && !player_hand.doubledDown) {
+            player_hand.hitCard(this.dealCard());
+            player_hand.handBet *= 2;
+            player_hand.doubledDown = true;
+            this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
+        }
+        else if (action === "H") {
+            player_hand.hitCard(this.dealCard());
+            this.playerHandAlgorithm(player_hand, dealer_hand, dealer_hand_value);
+        }
+        else {
+            if (player_hand.handValue === 21) {
+                //player blackjack
+                console.log("player blackjack");
+            }
+            if (dealer_hand_value === 21) {
+                //dealer blackjack
+                console.log("dealer blackjack");
+            }
+            if (player_hand.handValue > 21) {
+                //player bust
+                //dealer wins
+                console.log("player bust");
+                console.log("dealer wins");
+                return;
+            }
+            else if (dealer_hand_value > 21) {
+                //dealer bust
+                //player wins
+                console.log("dealer bust");
+                console.log("player wins");
+                return;
+            }
+            else if (player_hand.handValue > dealer_hand_value) {
+                //player wins
+                console.log("player wins");
+                return;
+            }
+            else if (player_hand.handValue < dealer_hand_value) {
+                //dealer wins
+                console.log("dealer wins");
+                return;
+            }
+            else {
+                //stand off
+                console.log("stand off");
+                return;
             }
         }
     };
@@ -313,35 +328,62 @@ var Shoe = /** @class */ (function () {
         }
     };
     Shoe.prototype.basicStrategy = function (player_hand, dealer_hand) {
-        if (player_hand.canSplitable() === true) {
-            return bja_game_rules_1.GameRules.pair_chart[(22 - player_hand.handValue) / 2][dealer_hand.hand_cards[0].value() - 2];
-        }
-        else if (!player_hand.isSoft()) {
-            if (player_hand.handValue > 17) {
-                return "S";
-            }
-            else if (player_hand.handValue < 8) {
-                return "H";
-            }
-            else {
-                return bja_game_rules_1.GameRules.hard_chart[17 - player_hand.handValue][dealer_hand.hand_cards[0].value() - 2];
-            }
-        }
-        else if (dealer_hand.isSoft()) {
-            if (player_hand.handValue > 10) {
-                return "S";
-            }
-            else if (player_hand.handValue < 3) {
-                return "H";
-            }
-            else {
-                return bja_game_rules_1.GameRules.soft_chart[10 - player_hand.handValue][dealer_hand.hand_cards[0].value() - 2];
-            }
+        var softTypeTest;
+        if (player_hand.isSoft()) {
+            softTypeTest = "S";
         }
         else {
-            console.log("somethink might went wrong in basicStrategy() section"); //hope it wont :D
-            return "Error";
+            softTypeTest = "H";
         }
+        // debug
+        console.log("BASIC STRATEGY CALLED: playerhand:" +
+            softTypeTest +
+            player_hand.handValue +
+            " dealer cards: " +
+            dealer_hand.hand_cards[0].value() +
+            " " +
+            dealer_hand.hand_cards[1].value());
+        if (player_hand.canSplit() === true) {
+            console.log("can split");
+            var splitCode = bja_game_rules_1.GameRules.pair_chart[(22 - player_hand.handValue) / 2][dealer_hand.hand_cards[0].value() - 2];
+            if (splitCode !== "N") {
+                return splitCode;
+            }
+            else {
+                if (!player_hand.isSoft()) {
+                    console.log("hard hand");
+                    if (player_hand.handValue >= 17) {
+                        return "S";
+                    }
+                    else if (player_hand.handValue < 8) {
+                        return "H";
+                    }
+                    else {
+                        return bja_game_rules_1.GameRules.hard_chart[16 - player_hand.handValue][dealer_hand.hand_cards[0].value() - 2];
+                    }
+                }
+                else if (dealer_hand.isSoft()) {
+                    console.log("soft hand");
+                    if (player_hand.handValue >= 10) {
+                        return "S";
+                    }
+                    else if (player_hand.handValue < 3) {
+                        return "H";
+                    }
+                    else {
+                        return bja_game_rules_1.GameRules.soft_chart[9 - player_hand.handValue][dealer_hand.hand_cards[0].value() - 2];
+                    }
+                }
+                else {
+                    console.log("somethink might went wrong in basicStrategy() section"); //hope it wont :D
+                    console.log("----------Error-----------");
+                    console.log(player_hand, dealer_hand);
+                    console.log("----------Error-----------");
+                    return "Error"; // debug
+                }
+            }
+        }
+        return "BASIC STRATEGY SECTION COULD CATCH ANY IF STATEMENTS"; // Default return statement
     };
     return Shoe;
 }());
@@ -374,7 +416,7 @@ var BlackjackSimulation = /** @class */ (function () {
         this.statistics.initialMoney = initialMoney;
         this.statistics.endMoney = initialMoney;
     }
-    BlackjackSimulation.prototype.setStatatistics = function (player_hand, dealer_hand, player_won, player_blackjack, player_bust, dealer_bust, hand_bet, true_count_of_bet) {
+    BlackjackSimulation.prototype.setStatistics = function (player_hand, dealer_hand, player_won, player_blackjack, player_bust, dealer_bust, hand_bet, true_count_of_bet) {
         this.statistics.handsPlayed++;
         this.statistics.totalBet += player_hand.handBet;
         if (player_won) {
@@ -429,7 +471,7 @@ var BlackjackSimulation = /** @class */ (function () {
 //There are additional numerical customizations that can be made in the code itself.
 //The code is not designed to play blackjack, it is designed to simulate the game and gather statistics.
 //Developer would love to hear feedback, and is completely open to any suggestions or improvements.
-var howManyShoesWillBePlayed = 1;
+var howManyShoesWillBePlayed = 10;
 var simulation = new BlackjackSimulation(2, // numDecks
 0.75, // penetration
 true, // dealerHitsSoft17
