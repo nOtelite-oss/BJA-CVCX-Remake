@@ -40,32 +40,9 @@ var Hand = /** @class */ (function () {
             aceCount--;
         }
     }
-    // public isSoft(): boolean {
-    //   if (this.handValue > 21) {
-    //     return false;
-    //   } else {
-    //     if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
-    //       return true;
-    //     } else {
-    //       return false;
-    //     }
-    //   }
-    // }
     Hand.prototype.isSoft = function () {
-        var aceCount;
-        this.hand_cards.map(function (card) { if (card.value() === 11) {
-            aceCount += 1;
-        } });
-        while (this.handValue <= 21 && aceCount) {
-            this.handValue -= 10;
-            aceCount -= 1;
-        }
-        if (aceCount >= 1) {
-            return true;
-        }
-        else {
-            return false;
-        }
+        var aceCount = this.hand_cards.filter(function (card) { return card.rank === "A"; }).length;
+        return aceCount > 0 && this.handValue <= 21;
     };
     Hand.prototype.canSplit = function () {
         return (this.hand_cards.length === 2 &&
