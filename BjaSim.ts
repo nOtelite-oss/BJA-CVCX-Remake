@@ -66,16 +66,9 @@ class Hand {
   }
 
   public isSoft(): boolean {
-    if (this.handValue > 21) {
-      return false;
-    } else {
-      if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
-        return true;
-      } else {
-        return false;
-      }
-    }
-  }
+    let aceCount = this.hand_cards.filter((card) => card.rank === "A").length;
+    return aceCount > 0 && this.handValue <= 21;
+}
 
   public canSplit(): boolean {
     return (
@@ -88,12 +81,12 @@ class Hand {
     this.hand_cards.push(card);
     this.handValue += card.value();
 
-    if (this.handValue > 21) {
-      if (this.hand_cards.some((card) => card.rank === "A")) {
+    let aceCount = this.hand_cards.filter((c) => c.rank === "A").length;
+    while (this.handValue > 21 && aceCount > 0) {
         this.handValue -= 10;
-      }
+        aceCount--;
     }
-  }
+}
 }
 
 class Shoe {
@@ -159,23 +152,6 @@ class Shoe {
       }
     }
   }
-
-  // shuffle() {
-  //   this.running_count = 0;
-
-  //   let copy: PlayingCard[] = [],
-  //     n: number = this.cards.length,
-  //     i: number;
-
-  //   while (n) {
-  //     // Pick a remaining element…
-  //     i = Math.floor(Math.random() * n--);
-
-  //     // And move it to thr new array. so its not picked again.
-  //     copy.push(this.cards.splice(i, 1)[0]);
-  //   }
-  //   this.cards = copy;
-  // }
 
   shuffle() {
     this.running_count = 0;
@@ -471,16 +447,50 @@ class Shoe {
             ];
           }
         } else {
-          console.log("somethink might went wrong in basicStrategy() section"); //hope it wont :D
+          console.log("somethink might went wrong in fisrt basicStrategy() section"); //hope it wont :D
           console.log("----------Error-----------");
           console.log(player_hand, dealer_hand);
           console.log("----------Error-----------");
-
+        
           return "Error"; // debug
         }
       }
+    } 
+    else {
+      if (!player_hand.isSoft()) {
+        console.log("hard hand");
+        if (player_hand.handValue >= 17) {
+          return "S";
+        } else if (player_hand.handValue < 8) {
+          return "H";
+        } else {
+          return GameRules.hard_chart[16 - player_hand.handValue][
+            dealer_hand.hand_cards[0].value() - 2
+          ];
+        }
+      } else if (dealer_hand.isSoft()) {
+        console.log('heree')
+        console.log("soft hand");
+        if (player_hand.handValue >= 10) {
+          return "S";
+        } else if (player_hand.handValue < 3) {
+          return "H";
+        } else {
+          return GameRules.soft_chart[9 - player_hand.handValue][
+            dealer_hand.hand_cards[0].value() - 2
+          ];
+        }
+      } else {
+        console.log("somethink might went wrong in second basicStrategy() section"); //hope it wont :D
+        console.log("----------Error-----------");
+        console.log(player_hand.isSoft())
+        console.log(player_hand, dealer_hand);
+        console.log("----------Error-----------");
+      
+        return "Error"; // debug
+      }
     }
-    return "BASIC STRATEGY SECTION COULD CATCH ANY IF STATEMENTS"; // Default return statement
+    return "basicStr";
   }
 }
 

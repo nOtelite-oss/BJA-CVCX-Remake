@@ -40,17 +40,31 @@ var Hand = /** @class */ (function () {
             aceCount--;
         }
     }
+    // public isSoft(): boolean {
+    //   if (this.handValue > 21) {
+    //     return false;
+    //   } else {
+    //     if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
+    //       return true;
+    //     } else {
+    //       return false;
+    //     }
+    //   }
+    // }
     Hand.prototype.isSoft = function () {
-        if (this.handValue > 21) {
-            return false;
+        var aceCount;
+        this.hand_cards.map(function (card) { if (card.value() === 11) {
+            aceCount += 1;
+        } });
+        while (this.handValue <= 21 && aceCount) {
+            this.handValue -= 10;
+            aceCount -= 1;
+        }
+        if (aceCount >= 1) {
+            return true;
         }
         else {
-            if (this.hand_cards[0].rank === "A" || this.hand_cards[1].rank === "A") {
-                return true;
-            }
-            else {
-                return false;
-            }
+            return false;
         }
     };
     Hand.prototype.canSplit = function () {
@@ -375,7 +389,7 @@ var Shoe = /** @class */ (function () {
                     }
                 }
                 else {
-                    console.log("somethink might went wrong in basicStrategy() section"); //hope it wont :D
+                    console.log("somethink might went wrong in fisrt basicStrategy() section"); //hope it wont :D
                     console.log("----------Error-----------");
                     console.log(player_hand, dealer_hand);
                     console.log("----------Error-----------");
@@ -383,7 +397,42 @@ var Shoe = /** @class */ (function () {
                 }
             }
         }
-        return "BASIC STRATEGY SECTION COULD CATCH ANY IF STATEMENTS"; // Default return statement
+        else {
+            if (!player_hand.isSoft()) {
+                console.log("hard hand");
+                if (player_hand.handValue >= 17) {
+                    return "S";
+                }
+                else if (player_hand.handValue < 8) {
+                    return "H";
+                }
+                else {
+                    return bja_game_rules_1.GameRules.hard_chart[16 - player_hand.handValue][dealer_hand.hand_cards[0].value() - 2];
+                }
+            }
+            else if (dealer_hand.isSoft()) {
+                console.log('heree');
+                console.log("soft hand");
+                if (player_hand.handValue >= 10) {
+                    return "S";
+                }
+                else if (player_hand.handValue < 3) {
+                    return "H";
+                }
+                else {
+                    return bja_game_rules_1.GameRules.soft_chart[9 - player_hand.handValue][dealer_hand.hand_cards[0].value() - 2];
+                }
+            }
+            else {
+                console.log("somethink might went wrong in second basicStrategy() section"); //hope it wont :D
+                console.log("----------Error-----------");
+                console.log(player_hand.isSoft());
+                console.log(player_hand, dealer_hand);
+                console.log("----------Error-----------");
+                return "Error"; // debug
+            }
+        }
+        return "basicStr";
     };
     return Shoe;
 }());
